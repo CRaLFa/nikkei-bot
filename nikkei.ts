@@ -5,7 +5,8 @@ type Entry = {
   stockCode: string;
   companyName: string;
   title: string;
-  url: string;
+  pageUrl: string;
+  fileUrl: string | undefined;
 };
 
 type Disclosure = {
@@ -16,22 +17,26 @@ type Disclosure = {
 const NIKKEI_BASE_URL = 'https://www.nikkei.com';
 
 const getTime = (tr: Element) => {
-  const tdTime = tr.querySelector('td.kjTime');
+  const tdTime = tr.querySelector('td:nth-of-type(1)');
   return tdTime ? tdTime.textContent.trim() : '';
 };
 
-const getCode = (tr: Element) => {
-  const tdCode = tr.querySelector('td.kjCode');
-  return tdCode ? tdCode.textContent.trim().slice(0, 4) : '';
+const getNameAndCode = (tr: Element) => {
+  const aName = tr.querySelector('td:nth-of-type(2) > a');
+  const getCode = (href: string | null) => {
+    const matched = href && href.match(/scode=(\w+)$/);
+    return matched ? matched[1] : '';
+  };
+  return aName ? [aName.textContent.trim(), getCode(aName.getAttribute('href'))] : ['', ''];
 };
 
-const getName = (tr: Element) => {
-  const tdName = tr.querySelector('td.kjName');
-  return tdName ? tdName.textContent.trim().replace(/^[Ａ-Ｚ]－/, '') : '';
+const getCategory = (tr: Element) => {
+  const tdCategory = tr.querySelector('td:nth-of-type(3)');
+  return tdCategory ? tdCategory.textContent.trim() : '';
 };
 
 const getTitleAndUrl = (tr: Element) => {
-  const aTitle = tr.querySelector('td.kjTitle > a');
+  const aTitle = tr.querySelector('td:nth-of-type(4) > a');
   return aTitle ? [aTitle.textContent.trim(), aTitle.getAttribute('href') ?? ''] : ['', ''];
 };
 
@@ -44,15 +49,28 @@ const getSlashYmd = (d: Date) => {
   return `${strYmd.slice(0, 4)}/${strYmd.slice(4, 6)}/${strYmd.slice(6)}`;
 };
 
-const toEntry = (tr: Element) => {
-  const [title, url] = getTitleAndUrl(tr);
-  return <Entry> {
+const toEntry = async (tr: Element) => {
+  const [name, code] = getNameAndCode(tr);
+  const [title, pageUrl] = getTitleAndUrl(tr);
+  const entry: Entry = {
     time: `${getSlashYmd(new Date())} ${getTime(tr)}`,
-    stockCode: getCode(tr),
-    companyName: getName(tr),
+    stockCode: code,
+    companyName: name,
     title,
-    url: `${NIKKEI_BASE_URL}/${url}`,
+    pageUrl,
+    fileUrl: undefined,
   };
+  const res = await fetch(pageUrl, {
+    signal: AbortSignal.timeout(15000),
+  });
+  if (res.ok) {
+    const text = await res.text();
+    const matched = text.match(/window\['pdfLocation'\] = "([^"]+)/);
+    if (matched) {
+      entry.fileUrl = `${NIKKEI_BASE_URL}/${matched[1]}`;
+    }
+  }
+  return entry;
 };
 
 const searchDisclosure = async (lastTime: number, searchWords: string[]): Promise<Disclosure> => {
@@ -67,27 +85,34 @@ const searchDisclosure = async (lastTime: number, searchWords: string[]): Promis
   try {
     while (true) {
       page++;
-      const res = await fetch(`${NIKKEI_BASE_URL}/I_list_${String(page).padStart(3, '0')}_${today}.html`, {
+      const res = await fetch(`${NIKKEI_BASE_URL}/markets/kigyo/disclose/?SelDateDiff=0&hm=${page}`, {
         signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) {
         return disclosure;
       }
       const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-      const rows = Array.from(doc.querySelectorAll('#main-list-table tr'));
+      const actualPage = parseInt(doc.querySelector('ul.pageIndexList > li.active > a')?.textContent ?? '', 10);
+      if (page !== actualPage) {
+        return disclosure;
+      }
+      const rows = Array.from(doc.querySelectorAll('#IR1600 > tbody > tr'));
       if (rows.length < 1) {
         return disclosure;
       }
       if (page === 1) {
         disclosure.latestEntryTime = today * 10000 + getNumHm(rows[0]);
       }
-      const matchedEntries = rows.filter((row) => {
-        if (!isNewEntry(row)) {
-          return false;
-        }
-        const title = getTitleAndUrl(row)[0];
-        return title.match(new RegExp(searchWords.join('|')));
-      }).map(toEntry);
+      const matchedEntries = await Promise.all(
+        rows.filter((row) => {
+          if (!isNewEntry(row)) {
+            return false;
+          }
+          const category = getCategory(row);
+          const title = getTitleAndUrl(row)[0];
+          return category.includes('PR') && title.match(new RegExp(searchWords.join('|')));
+        }).map(toEntry),
+      );
       disclosure.entries.push(...matchedEntries);
       if (!isNewEntry(rows.at(-1)!)) {
         return disclosure;

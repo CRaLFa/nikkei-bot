@@ -25,7 +25,10 @@ const KV_KEY = ['nikkei', 'lastTime'] as const;
       .map((chan) => chan.id);
   };
 
-  const getFileContent = async (url: string): Promise<FileContent | undefined> => {
+  const getFileContent = async (url: string | undefined): Promise<FileContent | undefined> => {
+    if (!url) {
+      return undefined;
+    }
     const res = await fetch(url, {
       signal: AbortSignal.timeout(15000),
     });
@@ -74,30 +77,35 @@ const KV_KEY = ['nikkei', 'lastTime'] as const;
     // await kv.delete(KV_KEY);
     const lastTime = (await kv.get<number>(KV_KEY)).value ?? 0;
     const disclosure = await searchDisclosure(lastTime, [
-      '提携',
+      '(提|連)携',
       '協業',
-      '(初|増)配',
-      '配当の?実施',
-      '自己株式の?取得(?!状況|結果|終了|）)',
-      '株式の?分割',
+      '締結',
+      '開始',
+      'リリース',
+      '決定',
+      '発売',
+      '受賞',
+      'パートナー',
+      '認定',
+      '承認',
+      '導入',
+      '採(用|択)',
       '特許',
-      '上方修正',
-      '子会社化',
-      '(業績|配当)予想の修正',
-      '共同.*(研究|開発)',
-      '指定',
+      '受託',
     ]);
     if (disclosure.latestEntryTime > 0) {
       await kv.set(KV_KEY, disclosure.latestEntryTime);
     }
     if (disclosure.entries.length < 1) {
-      console.log('No new entry about business alliances');
+      console.log('No matching entry');
       return;
     }
     console.log(JSON.stringify(disclosure));
     for (const entry of disclosure.entries) {
-      const content = `【${entry.companyName} (${entry.stockCode})】${entry.title} (${entry.time})\n${entry.url}`;
-      const file = await getFileContent(entry.url).catch((err) => {
+      const content = `【${entry.companyName} (${entry.stockCode})】${entry.title} (${entry.time})\n${
+        entry.fileUrl ?? entry.pageUrl
+      }`;
+      const file = await getFileContent(entry.fileUrl).catch((err) => {
         console.error(err);
         return undefined;
       });
