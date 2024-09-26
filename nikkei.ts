@@ -81,10 +81,9 @@ const searchDisclosure = async (lastTime: number, searchWords: string[]): Promis
     latestEntryTime: 0,
     entries: [],
   };
-  let page = 0;
+  let page = 1;
   try {
     while (true) {
-      page++;
       const res = await fetch(`${NIKKEI_BASE_URL}/markets/kigyo/disclose/?SelDateDiff=0&hm=${page}`, {
         signal: AbortSignal.timeout(15000),
       });
@@ -92,10 +91,6 @@ const searchDisclosure = async (lastTime: number, searchWords: string[]): Promis
         return disclosure;
       }
       const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-      const actualPage = parseInt(doc.querySelector('ul.pageIndexList > li.active > a')?.textContent ?? '', 10);
-      if (page !== actualPage) {
-        return disclosure;
-      }
       const rows = Array.from(doc.querySelectorAll('#IR1600 > tbody > tr'));
       if (rows.length < 1) {
         return disclosure;
@@ -117,6 +112,10 @@ const searchDisclosure = async (lastTime: number, searchWords: string[]): Promis
       if (!isNewEntry(rows.at(-1)!)) {
         return disclosure;
       }
+      if (!doc.querySelector('li.nextPageLink')?.hasChildNodes()) {
+        return disclosure;
+      }
+      page++;
     }
   } catch (err) {
     console.error(err);
