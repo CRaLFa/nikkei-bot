@@ -67,7 +67,7 @@ const toEntry = async (tr: Element) => {
     const text = await res.text();
     const matched = text.match(/window\['pdfLocation'\] = "([^"]+)/);
     if (matched) {
-      entry.fileUrl = `${NIKKEI_BASE_URL}/${matched[1]}`;
+      entry.fileUrl = NIKKEI_BASE_URL + matched[1];
     }
   }
   return entry;
