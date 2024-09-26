@@ -112,7 +112,7 @@ const searchDisclosure = async (lastTime: number, searchWords: string[]): Promis
       if (!isNewEntry(rows.at(-1)!)) {
         return disclosure;
       }
-      if (!doc.querySelector('li.nextPageLink')?.hasChildNodes()) {
+      if (!doc.querySelector('div.searchResolutTop li.nextPageLink > a')) {
         return disclosure;
       }
       page++;
