@@ -1,0 +1,18 @@
+{
+  "tasks": {
+    "dev": "deno run -A --watch --unstable-kv --unstable-cron ./main.ts"
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 120,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve"
+  },
+  "imports": {
+    "@b-fuze/deno-dom": "jsr:@b-fuze/deno-dom@^0.1.48",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.2",
+    "@std/path": "jsr:@std/path@^1.0.6"
+  }
+}

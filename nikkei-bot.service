@@ -1,0 +1,15 @@
+[Unit]
+Description=Discord bot for notifying disclosures on nikkei.com
+After=network.target
+
+[Service]
+Type=simple
+User=rana
+Group=rana
+WorkingDirectory=/home/rana/nikkei-bot
+ExecStart=/home/rana/.deno/bin/deno run -A --unstable-kv --unstable-cron ./main.ts
+Restart=always
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
