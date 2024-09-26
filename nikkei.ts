@@ -98,6 +98,7 @@ const searchDisclosure = async (lastTime: number, searchWords: string[]): Promis
       if (page === 1) {
         disclosure.latestEntryTime = today * 10000 + getNumHm(rows[0]);
       }
+      const searchCond = new RegExp(searchWords.join('|'));
       const matchedEntries = await Promise.all(
         rows.filter((row) => {
           if (!isNewEntry(row)) {
@@ -105,7 +106,7 @@ const searchDisclosure = async (lastTime: number, searchWords: string[]): Promis
           }
           const category = getCategory(row);
           const title = getTitleAndUrl(row)[0];
-          return category.includes('PR') && title.match(new RegExp(searchWords.join('|')));
+          return category.includes('PR') && title.match(searchCond);
         }).map(toEntry),
       );
       disclosure.entries.push(...matchedEntries);
