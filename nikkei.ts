@@ -64,7 +64,7 @@ const toEntry = async (tr: Element) => {
     signal: AbortSignal.timeout(15000),
   });
   if (res.ok) {
-    const matched = /pdfLocation.+"(.+\.pdf)/.exec(await res.text());
+    const matched = /pdfLocation.+?(\/.+\.pdf)/.exec(await res.text());
     if (matched) {
       entry.fileUrl = NIKKEI_BASE_URL + matched[1];
     }
