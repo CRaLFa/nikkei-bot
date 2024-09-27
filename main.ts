@@ -76,25 +76,8 @@ const KV_KEY = ['nikkei', 'lastTime'] as const;
     const kv = await Deno.openKv();
     // await kv.delete(KV_KEY);
     const lastTime = (await kv.get<number>(KV_KEY)).value ?? 0;
-    const disclosure = await searchDisclosure(lastTime, [
-      '(提|連)携',
-      '協業',
-      '締結',
-      // '開始',
-      'リリース',
-      '決定',
-      // '発売',
-      '受賞',
-      'パートナー',
-      '(認|指)定',
-      '承認',
-      '導入(?!事例)',
-      '採(用|択)',
-      '特許',
-      '受託',
-      '開発',
-      '提供',
-    ]);
+    const searchWords = (await Deno.readTextFile('./search_words.txt')).trim().replaceAll(/\r*\n/g, '|');
+    const disclosure = await searchDisclosure(lastTime, new RegExp(searchWords));
     if (disclosure.latestEntryTime > 0) {
       await kv.set(KV_KEY, disclosure.latestEntryTime);
     }
