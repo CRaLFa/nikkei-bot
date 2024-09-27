@@ -37,7 +37,11 @@ const getCategory = (tr: Element) => {
 
 const getTitleAndUrl = (tr: Element) => {
   const aTitle = tr.querySelector('td:nth-of-type(4) > a');
-  return aTitle ? [aTitle.textContent.trim(), aTitle.getAttribute('href') ?? ''] : ['', ''];
+  const getUrl = (href: string | null) => {
+    const params = href && new URL(href).searchParams;
+    return params && params.has('t') ? params.get('t')! : '';
+  };
+  return aTitle ? [aTitle.textContent.trim(), getUrl(aTitle.getAttribute('href'))] : ['', ''];
 };
 
 const getNumYmd = (d: Date) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
