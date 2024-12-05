@@ -114,7 +114,7 @@ const KV_KEY = ['nikkei', 'lastTime'] as const;
     Deno.cron('nikkei-bot', {
       minute: { every: 1 },
     }, async () => {
-      await new Promise((resolve) => setTimeout(resolve, 35000));
+      await new Promise((resolve) => setTimeout(resolve, 15000));
       await main(channelIds);
     });
   }).catch((err) => {
