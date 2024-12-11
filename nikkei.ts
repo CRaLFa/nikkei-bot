@@ -6,7 +6,7 @@ type Entry = {
   companyName: string;
   title: string;
   pageUrl: string;
-  fileUrl: string | undefined;
+  fileUrl?: string;
 };
 
 type Disclosure = {
@@ -14,7 +14,7 @@ type Disclosure = {
   entries: Entry[];
 };
 
-const NIKKEI_BASE_URL = 'https://www.nikkei.com';
+const BASE_URL = 'https://www.nikkei.com';
 
 const getTime = (tr: Element) => {
   const tdTime = tr.querySelector('td:nth-of-type(1)');
@@ -70,13 +70,13 @@ const toEntry = async (tr: Element) => {
   if (res.ok) {
     const matched = /pdfLocation.+?(\/.+\.pdf)/.exec(await res.text());
     if (matched) {
-      entry.fileUrl = NIKKEI_BASE_URL + matched[1];
+      entry.fileUrl = BASE_URL + matched[1];
     }
   }
   return entry;
 };
 
-const searchDisclosure = async (lastTime: number, searchCond: RegExp): Promise<Disclosure> => {
+const searchDisclosure = async (lastTime: number, searchCond: RegExp) => {
   const lastYmd = Math.floor(lastTime / 10000), lastHm = lastTime % 10000;
   const today = getNumYmd(new Date());
   const isNewEntry = (tr: Element) => lastYmd < today || lastHm < getNumHm(tr);
@@ -87,7 +87,7 @@ const searchDisclosure = async (lastTime: number, searchCond: RegExp): Promise<D
   let page = 1;
   try {
     while (true) {
-      const res = await fetch(`${NIKKEI_BASE_URL}/markets/kigyo/disclose/?SelDateDiff=0&hm=${page}`, {
+      const res = await fetch(`${BASE_URL}/markets/kigyo/disclose/?SelDateDiff=0&hm=${page}`, {
         signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) {

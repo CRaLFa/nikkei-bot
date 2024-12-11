@@ -25,7 +25,7 @@ const KV_KEY = ['nikkei', 'lastTime'] as const;
       .map((chan) => chan.id);
   };
 
-  const getFileContent = async (url: string | undefined): Promise<FileContent | undefined> => {
+  const getFileContent = async (url?: string): Promise<FileContent | undefined> => {
     if (!url) {
       return undefined;
     }
